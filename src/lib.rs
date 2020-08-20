@@ -4,28 +4,29 @@ extern crate log;
 use log::{Log, Metadata, Record};
 use tokio::sync::mpsc::{channel, Sender};
 use tokio::io;
-use std::mem;
 use std::time::Instant;
 use tokio::io::AsyncWriteExt;
 
+const DUMP_SIZE: usize = 1_048_576;
+
 pub struct Flog {
-    tx: Sender<String>,
+    tx: Sender<Vec<u8>>,
     start: Instant,
 }
 
 impl Flog {
     pub fn new() -> Flog {
-        let (tx, mut rx) = channel::<String>(128);
+        let (tx, mut rx) = channel::<Vec<u8>>(128);
         tokio::spawn(async move {
-            let mut buffer = String::with_capacity(4096);
-            while let Some(item) = rx.recv().await {
-                if buffer.len() + item.len() > 4096 {
-                    let to_write =
-                        mem::replace(&mut buffer, String::with_capacity(4096))
-                            .into_bytes();
-                    tokio::spawn(async move { io::stdout().write_all(&to_write).await.unwrap() });
+            let mut buffers = [Vec::with_capacity(4096), Vec::with_capacity(4096)];
+            let mut current_buffer_index = 0;
+            while let Some(mut item) = rx.recv().await {
+                if buffers[current_buffer_index].len() + item.len() > DUMP_SIZE {
+                    io::stdout().write_all(&buffers[current_buffer_index]).await.unwrap();
+                    buffers[current_buffer_index].clear();
+                    current_buffer_index = (current_buffer_index + 1) % 2;
                 }
-                buffer.push_str(&item);
+                buffers[current_buffer_index].append(&mut item);
             }
         });
         Flog { tx, start: Instant::now() }
@@ -43,7 +44,7 @@ impl Log for Flog {
         let duration = now.duration_since(self.start);
         let content = format!("{} {}\n", duration.as_nanos(), record.args());
         tokio::spawn(async move {
-            tx.send(content).await.unwrap();
+            tx.send(content.into_bytes()).await.unwrap();
         });
     }
 
