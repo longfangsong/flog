@@ -1,0 +1,11 @@
+[package]
+name = "flog"
+version = "0.1.0"
+authors = ["longfangsong <longfangsong@icloud.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = { version = "0.4.11", features = ["std"] }
+tokio = { version = "0.2.22", features = ["rt-threaded", "sync", "io-std", "io-util"] }
