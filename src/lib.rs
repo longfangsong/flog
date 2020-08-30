@@ -1,71 +1,46 @@
 #[macro_use]
-extern crate log;
+extern crate lazy_static;
 
-use log::{Log, Metadata, Record};
-use tokio::sync::mpsc::{channel, Sender};
-use tokio::io;
-use std::time::Instant;
-use tokio::io::AsyncWriteExt;
+use std::fs::File;
+use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::io::Write;
 
-const DUMP_SIZE: usize = 1_048_576;
+// todo: make it configurable
+const BUFFER_SIZE: usize = 16384;
 
-pub struct Flog {
-    tx: Sender<Vec<u8>>,
-    start: Instant,
+lazy_static! {
+  static ref LOG_FILE: Arc<Mutex<File>> = Arc::new(Mutex::new(File::create("./log.log").unwrap()));
 }
 
-impl Flog {
-    pub fn new() -> Flog {
-        let (tx, mut rx) = channel::<Vec<u8>>(128);
-        tokio::spawn(async move {
-            let mut buffers = [Vec::with_capacity(4096), Vec::with_capacity(4096)];
-            let mut current_buffer_index = 0;
-            while let Some(mut item) = rx.recv().await {
-                if buffers[current_buffer_index].len() + item.len() > DUMP_SIZE {
-                    io::stdout().write_all(&buffers[current_buffer_index]).await.unwrap();
-                    buffers[current_buffer_index].clear();
-                    current_buffer_index = (current_buffer_index + 1) % 2;
-                }
-                buffers[current_buffer_index].append(&mut item);
-            }
-        });
-        Flog { tx, start: Instant::now() }
-    }
+pub struct Collector {
+    buffer: String,
+    to_file: Arc<Mutex<File>>,
 }
 
-impl Log for Flog {
-    fn enabled(&self, _metadata: &Metadata<'_>) -> bool {
-        true
-    }
+thread_local!(static COLLECTOR: RefCell<Collector> = RefCell::new(Collector {
+    buffer: String::with_capacity(BUFFER_SIZE),
+    to_file: LOG_FILE.clone(),
+}));
 
-    fn log(&self, record: &Record<'_>) {
-        let mut tx = self.tx.clone();
-        let now = Instant::now();
-        let duration = now.duration_since(self.start);
-        let content = format!("{} {}\n", duration.as_nanos(), record.args());
-        tokio::spawn(async move {
-            tx.send(content.into_bytes()).await.unwrap();
-        });
-    }
+pub fn log(content: &str) {
+    COLLECTOR.with(move |collector| {
+        let mut collector = collector.borrow_mut();
+        collector.buffer.push_str(content);
+        if collector.buffer.len() > BUFFER_SIZE {
+            collector.to_file.lock().unwrap().write_all(collector.buffer.as_bytes()).unwrap();
+            collector.buffer.clear();
+        }
+    });
+}
 
-    fn flush(&self) {}
+pub fn flush() {
+    COLLECTOR.with(move |collector| {
+        let mut collector = collector.borrow_mut();
+        collector.to_file.lock().unwrap().write_all(collector.buffer.as_bytes()).unwrap();
+        collector.buffer.clear();
+    });
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::Flog;
-    use log::LevelFilter;
-    use tokio::runtime::Runtime;
-
-    #[test]
-    fn it_works() {
-        let mut rt = Runtime::new().unwrap();
-        rt.block_on(async {
-            log::set_boxed_logger(Box::new(Flog::new())).unwrap();
-            log::set_max_level(LevelFilter::Trace);
-            for i in 0..1_0000_0000 {
-                info!("{}", i);
-            }
-        });
-    }
-}
+mod tests {}

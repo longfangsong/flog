@@ -1,2 +1,7 @@
 /target
 Cargo.lock
+input.bin
+log.log
+output.txt
+.idea
+.DS_Store
