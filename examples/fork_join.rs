@@ -4,12 +4,10 @@ use std::io::{SeekFrom, Read, Seek};
 use std::thread;
 use std::time::Instant;
 use flog::{log, flush};
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::io::Write;
-use std::sync::{Mutex, Arc, MutexGuard};
-use std::borrow::BorrowMut;
+use std::sync::{Mutex, Arc};
 
-const N: usize = 1_048_576;
+const N: usize = 1 << 22;
 
 fn prepare() {
     let mut file = File::create("./input.bin").unwrap();
@@ -36,18 +34,21 @@ pub fn heavy_cpu(i: usize) -> f64 {
         (i as f64).asin(),
         (i as f64).powf(PI),
         (i as f64).powf(PI * 2.0),
-        (fib(i % 50) as f64).sin().acos().tan(),
+        (fib(i % 25) as f64).sin().acos().tan(),
     ];
     data.iter().sum()
 }
 
-fn mixed(mut from: MutexGuard<File>, mut to: MutexGuard<File>, i: usize) {
+fn mixed(from: Arc<Mutex<File>>, to: Arc<Mutex<File>>, i: usize) {
+    let mut from = from.lock().unwrap();
     let mut buffer = [0u8; 8];
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
     drop(from);
     let n = u64::from_le_bytes(buffer);
-    write!(to, "result is: {}\n", heavy_cpu(n as usize)).unwrap();
+    let result = heavy_cpu(n as usize);
+    let mut to = to.lock().unwrap();
+    write!(to, "result is: {}\n", result).unwrap();
 }
 
 fn use_log(thread_count: usize, i: usize) {
@@ -60,8 +61,8 @@ fn use_log(thread_count: usize, i: usize) {
         let to = to.clone();
         threads.push(thread::spawn(move || {
             for i in 0..i / thread_count {
-                let from = from.lock().unwrap();
-                let to = to.lock().unwrap();
+                let from = from.clone();
+                let to = to.clone();
                 log(&format!("[{:?}] {} start", start_time.elapsed(), i));
                 mixed(from, to, i);
                 log(&format!("[{:?}] {} end", start_time.elapsed(), i));

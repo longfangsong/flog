@@ -10,7 +10,7 @@ use std::sync::{Mutex, Arc};
 
 fn prepare() {
     let mut file = File::create("./input.bin").unwrap();
-    for i in 0..32768u64 {
+    for i in 0..16384u64 {
         file.write_all(&i.to_le_bytes()).unwrap();
     }
     File::create("./output.txt").unwrap();
@@ -33,17 +33,21 @@ pub fn heavy_cpu(i: usize) -> f64 {
         (i as f64).asin(),
         (i as f64).powf(PI),
         (i as f64).powf(PI * 2.0),
-        (fib(i % 20) as f64).sin().acos().tan(),
+        (fib(i % 25) as f64).sin().acos().tan(),
     ];
     data.iter().sum()
 }
 
-fn mixed(from: &mut File, to: &mut File, i: usize) {
+fn mixed(from: Arc<Mutex<File>>, to: Arc<Mutex<File>>, i: usize) {
+    let mut from = from.lock().unwrap();
     let mut buffer = [0u8; 8];
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
+    drop(from);
     let n = u64::from_le_bytes(buffer);
-    write!(to, "result is: {}\n", heavy_cpu(n as usize)).unwrap();
+    let result = heavy_cpu(n as usize);
+    let mut to = to.lock().unwrap();
+    write!(to, "result is: {}\n", result).unwrap();
 }
 
 fn pure(thread_count: usize, i: usize) {
@@ -55,9 +59,9 @@ fn pure(thread_count: usize, i: usize) {
         let to = to.clone();
         threads.push(thread::spawn(move || {
             for i in 0..i / thread_count {
-                let mut from = from.lock().unwrap();
-                let mut to = to.lock().unwrap();
-                mixed(&mut from, &mut to, i);
+                let from = from.clone();
+                let to = to.clone();
+                mixed(from, to, i);
             }
         }));
     }
@@ -80,11 +84,13 @@ fn use_print(thread_count: usize, i: usize) {
         let f = f.clone();
         threads.push(thread::spawn(move || {
             for i in 0..i / thread_count {
-                let mut from = from.lock().unwrap();
-                let mut to = to.lock().unwrap();
+                let from = from.clone();
+                let to = to.clone();
+                let mut f_ = f.lock().unwrap();
+                writeln!(f_, "[{:?}] {} start", start_time.elapsed(), i).unwrap();
+                drop(f_);
+                mixed(from, to, i);
                 let mut f = f.lock().unwrap();
-                writeln!(f, "[{:?}] {} start", start_time.elapsed(), i).unwrap();
-                mixed(&mut from, &mut to, i);
                 writeln!(f, "[{:?}] {} end", start_time.elapsed(), i).unwrap();
             }
         }))
@@ -104,10 +110,10 @@ fn use_log(thread_count: usize, i: usize) {
         let to = to.clone();
         threads.push(thread::spawn(move || {
             for i in 0..i / thread_count {
-                let mut from = from.lock().unwrap();
-                let mut to = to.lock().unwrap();
+                let from = from.clone();
+                let to = to.clone();
                 log(&format!("[{:?}] {} start", start_time.elapsed(), i));
-                mixed(&mut from, &mut to, i);
+                mixed(from, to, i);
                 log(&format!("[{:?}] {} end", start_time.elapsed(), i));
             }
         }))
