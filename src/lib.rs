@@ -1,8 +1,4 @@
-#[macro_use]
-extern crate lazy_static;
-
 use std::fs::File;
-use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
 use std::io::Write;
 use std::thread;
@@ -38,6 +34,3 @@ pub fn flush() {
         collector.buffer.clear();
     });
 }
-
-#[cfg(test)]
-mod tests {}

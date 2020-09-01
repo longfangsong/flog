@@ -47,7 +47,7 @@ fn mixed(from: Arc<Mutex<File>>, to: Arc<Mutex<File>>, i: usize) {
     let n = u64::from_le_bytes(buffer);
     let result = heavy_cpu(n as usize);
     let mut to = to.lock().unwrap();
-    write!(to, "result is: {}\n", result).unwrap();
+    writeln!(to, "result is: {}", result).unwrap();
 }
 
 fn pure(thread_count: usize, i: usize) {
@@ -70,6 +70,7 @@ fn pure(thread_count: usize, i: usize) {
     }
 }
 
+#[allow(dead_code)]
 fn use_print(thread_count: usize, i: usize) {
     let from = Arc::new(Mutex::new(File::open("./input.bin").unwrap()));
     let to = Arc::new(Mutex::new(File::create("./output.txt").unwrap()));

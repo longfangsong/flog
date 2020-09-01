@@ -1,9 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use std::time::{Instant, Duration};
+use std::time::{Instant};
 use flog::{log, flush};
 use std::fs::File;
 use std::io::Write;
 
+#[allow(dead_code)]
 fn print_single_thread(i: usize) {
     let mut f = File::create("log.log").unwrap();
     let start_time = Instant::now();
