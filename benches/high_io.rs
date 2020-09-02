@@ -15,7 +15,7 @@ fn heavy_io(from: &mut File, to: &mut File, i: usize) {
     let mut buffer = [0u8; 8];
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
-    write!(to, "result is: {}\n", u64::from_le_bytes(buffer)).unwrap();
+    writeln!(to, "result is: {}", u64::from_le_bytes(buffer)).unwrap();
 }
 
 fn pure(i: usize) {
@@ -26,6 +26,7 @@ fn pure(i: usize) {
     }
 }
 
+#[allow(dead_code)]
 fn use_print(i: usize) {
     let mut from = File::open("./input.bin").unwrap();
     let mut to = File::create("./output.txt").unwrap();

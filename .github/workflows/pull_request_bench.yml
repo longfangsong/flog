@@ -5,9 +5,9 @@ jobs:
     name: run benchmark
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - run: |
-          git show-branch
-      - uses: jasonwilliams/criterion-compare-action@move_to_actions
+          git fetch origin master
+      - uses: jasonwilliams/criterion-compare-action@v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

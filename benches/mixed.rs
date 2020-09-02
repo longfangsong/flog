@@ -40,7 +40,7 @@ fn mixed(from: &mut File, to: &mut File, i: usize) {
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
     let n = u64::from_le_bytes(buffer);
-    write!(to, "result is: {}\n", heavy_cpu(n)).unwrap();
+    writeln!(to, "result is: {}", heavy_cpu(n)).unwrap();
 }
 
 fn pure(i: usize) {
@@ -51,6 +51,7 @@ fn pure(i: usize) {
     }
 }
 
+#[allow(dead_code)]
 fn use_print(i: usize) {
     let mut from = File::open("./input.bin").unwrap();
     let mut to = File::create("./output.txt").unwrap();
