@@ -8,6 +8,6 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           git fetch origin master
-      - uses: jasonwilliams/criterion-compare-action@v2.0.0
+      - uses: longfangsong/another-criterion-compare-action@v0.1-beta
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
