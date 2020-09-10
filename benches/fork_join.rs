@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{SeekFrom, Read, Seek};
 use std::thread;
 use std::time::Instant;
-use flog::{log, flush};
+use flog::{flush, LogItem, log};
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::io::Write;
 use std::sync::{Mutex, Arc};
@@ -104,7 +104,7 @@ fn use_print(thread_count: usize, i: usize) {
 fn use_log(thread_count: usize, i: usize) {
     let from = Arc::new(Mutex::new(File::open("./input.bin").unwrap()));
     let to = Arc::new(Mutex::new(File::create("./output.txt").unwrap()));
-    let start_time = Instant::now();
+    let start_time = minstant::now();
     let mut threads = Vec::new();
     for _tid in 0..thread_count {
         let from = from.clone();
@@ -113,9 +113,16 @@ fn use_log(thread_count: usize, i: usize) {
             for i in 0..i / thread_count {
                 let from = from.clone();
                 let to = to.clone();
-                log(&format!("[{:?}] {} start", start_time.elapsed(), i));
+
+                let mut obj = LogItem::new();
+                obj.char('[').u64(minstant::now() - start_time).str("] ").u64(i as u64).str(" start\n");
+                log(obj);
+
                 mixed(from, to, i);
-                log(&format!("[{:?}] {} end", start_time.elapsed(), i));
+
+                let mut obj = LogItem::new();
+                obj.char('[').u64(minstant::now() - start_time).str("] ").u64(i as u64).str(" end\n");
+                log(obj);
             }
         }))
     }

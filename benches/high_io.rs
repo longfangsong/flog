@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::time::Instant;
-use flog::{log, flush};
+use flog::{log_str, flush};
 use std::fs::File;
 use std::io::{Write, Read, Seek, SeekFrom};
 
@@ -44,9 +44,9 @@ fn use_log(i: usize) {
     let mut to = File::create("./output.txt").unwrap();
     let start_time = Instant::now();
     for i in 0..i {
-        log(&format!("[{:?}] {} start", start_time.elapsed(), i));
+        log_str(&format!("[{:?}] {} start", start_time.elapsed(), i));
         heavy_io(&mut from, &mut to, i);
-        log(&format!("[{:?}] {} end", start_time.elapsed(), i));
+        log_str(&format!("[{:?}] {} end", start_time.elapsed(), i));
     }
     flush();
 }
