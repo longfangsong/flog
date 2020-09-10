@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::time::{Instant};
-use flog::{log, flush};
+use flog::{log_str, flush};
 use std::fs::File;
 use std::io::Write;
 use std::f64::consts::PI;
@@ -46,7 +46,7 @@ fn use_print(i: usize) {
 fn use_log(i: usize) {
     let start_time = Instant::now();
     for i in 0..i {
-        log(&format!("[{:?}] {}\n", start_time.elapsed(), heavy_cpu(i)))
+        log_str(&format!("[{:?}] {}\n", start_time.elapsed(), heavy_cpu(i)))
     }
     flush();
 }

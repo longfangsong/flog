@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{SeekFrom, Read, Seek};
 use std::thread;
 use std::time::Instant;
-use flog::{log, flush};
+use flog::{log_str, flush, LogItem, log};
 use std::io::Write;
 use std::sync::{Mutex, Arc};
 
@@ -40,27 +40,32 @@ pub fn heavy_cpu(i: usize) -> f64 {
 }
 
 fn mixed(from: Arc<Mutex<File>>, to: Arc<Mutex<File>>, i: usize) {
-    let start_time = Instant::now();
+    let mut obj = LogItem::new();
+    let start_time = minstant::now();
+
     let mut from = from.lock().unwrap();
     let mut buffer = [0u8; 8];
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
     drop(from);
     let n = u64::from_le_bytes(buffer);
-    log(&format!("{} read {:?}", i, start_time.elapsed()));
-    let start_time = Instant::now();
+    obj.u64(i as u64).str(" read ").u64(i as u64).u64(minstant::now() - start_time).char('\n');
+
+    let start_time = minstant::now();
     let result = heavy_cpu(n as usize);
-    log(&format!("{} heavy_cpu {:?}", i, start_time.elapsed()));
-    let start_time = Instant::now();
+    obj.u64(i as u64).str(" heavy_cpu ").u64(i as u64).u64(minstant::now() - start_time).char('\n');
+    let start_time = minstant::now();
     let mut to = to.lock().unwrap();
     write!(to, "result is: {}\n", result).unwrap();
-    log(&format!("{} write {:?}", i, start_time.elapsed()));
+    obj.u64(i as u64).str(" write ").u64(i as u64).u64(minstant::now() - start_time).char('\n');
+
+    log(obj);
 }
 
 fn use_log(thread_count: usize, i: usize) {
     let from = Arc::new(Mutex::new(File::open("./input.bin").unwrap()));
     let to = Arc::new(Mutex::new(File::create("./output.txt").unwrap()));
-    let start_time = Instant::now();
+    let start_time = minstant::now();
     let mut threads = Vec::new();
     for _tid in 0..thread_count {
         let from = from.clone();
@@ -69,9 +74,16 @@ fn use_log(thread_count: usize, i: usize) {
             for i in 0..i / thread_count {
                 let from = from.clone();
                 let to = to.clone();
-                log(&format!("[{:?}] {} start", start_time.elapsed(), i));
+
+                let mut obj = LogItem::new();
+                obj.char('[').u64(minstant::now() - start_time).str("] ").u64(i as u64).str(" start\n");
+                log(obj);
+
                 mixed(from, to, i);
-                log(&format!("[{:?}] {} end", start_time.elapsed(), i));
+
+                let mut obj = LogItem::new();
+                obj.char('[').u64(minstant::now() - start_time).str("] ").u64(i as u64).str(" end\n");
+                log(obj);
             }
         }))
     }

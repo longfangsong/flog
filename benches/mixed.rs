@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{Write, SeekFrom, Read, Seek};
 use std::f64::consts::PI;
 use std::time::Instant;
-use flog::{log, flush};
+use flog::{log_str, flush};
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 
 fn fib(i: u64) -> u64 {
@@ -69,9 +69,9 @@ fn use_log(i: usize) {
     let mut to = File::create("./output.txt").unwrap();
     let start_time = Instant::now();
     for i in 0..i {
-        log(&format!("[{:?}] {} start", start_time.elapsed(), i));
+        log_str(&format!("[{:?}] {} start", start_time.elapsed(), i));
         mixed(&mut from, &mut to, i);
-        log(&format!("[{:?}] {} end", start_time.elapsed(), i));
+        log_str(&format!("[{:?}] {} end", start_time.elapsed(), i));
     }
     flush();
 }

@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use std::time::{Instant};
-use flog::{log, flush};
+use flog::{flush, log, LogItem};
 use std::fs::File;
 use std::io::Write;
 
@@ -14,9 +14,11 @@ fn print_single_thread(i: usize) {
 }
 
 fn log_single_thread(i: usize) {
-    let start_time = Instant::now();
+    let start = minstant::now();
     for i in 0..i {
-        log(&format!("[{:?}] {}\n", start_time.elapsed(), i))
+        let mut obj = LogItem::new();
+        obj.char('[').u64(minstant::now() - start).str("] ").u64(i as u64).char('\n');
+        log(obj);
     }
     flush();
 }
