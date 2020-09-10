@@ -40,15 +40,21 @@ pub fn heavy_cpu(i: usize) -> f64 {
 }
 
 fn mixed(from: Arc<Mutex<File>>, to: Arc<Mutex<File>>, i: usize) {
+    let start_time = Instant::now();
     let mut from = from.lock().unwrap();
     let mut buffer = [0u8; 8];
     from.seek(SeekFrom::Start(i as u64 * 8)).unwrap();
     from.read_exact(&mut buffer).unwrap();
     drop(from);
     let n = u64::from_le_bytes(buffer);
+    log(&format!("{} read {:?}", i, start_time.elapsed()));
+    let start_time = Instant::now();
     let result = heavy_cpu(n as usize);
+    log(&format!("{} heavy_cpu {:?}", i, start_time.elapsed()));
+    let start_time = Instant::now();
     let mut to = to.lock().unwrap();
     write!(to, "result is: {}\n", result).unwrap();
+    log(&format!("{} write {:?}", i, start_time.elapsed()));
 }
 
 fn use_log(thread_count: usize, i: usize) {
@@ -78,5 +84,10 @@ fn use_log(thread_count: usize, i: usize) {
 fn main() {
     prepare();
     println!("prepared");
+    let guard = pprof::ProfilerGuard::new(100).unwrap();
     use_log(128, N);
+    if let Ok(report) = guard.report().build() {
+        let file = File::create("flamegraph.svg").unwrap();
+        report.flamegraph(file).unwrap();
+    };
 }
