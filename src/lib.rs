@@ -32,7 +32,7 @@ impl LogItem {
     pub fn u64(&mut self, mut n: u64) -> &mut Self {
         // max length of a u64 is 20:         18442240474082181120
         let mut current_cursor = self.content.len() + 20 - 1;
-        self.content.extend_from_slice(b"                    ");
+        self.content.extend_from_slice(b"                   0");
         while n != 0 {
             self.content[current_cursor] = b'0' + (n % 10) as u8;
             n /= 10;
@@ -82,6 +82,23 @@ pub fn log_str(content: &str) {
     COLLECTOR.with(move |collector| {
         let mut collector = collector.borrow_mut();
         collector.buffer.extend_from_slice(content.as_bytes());
+        if collector.buffer.len() > BUFFER_SIZE {
+            collector.to_file.borrow_mut().write_all(&collector.buffer).unwrap();
+            collector.buffer.clear();
+        }
+    });
+}
+
+pub fn log_u64(mut n: u64) {
+    COLLECTOR.with(move |collector| {
+        let mut collector = collector.borrow_mut();
+        collector.buffer.extend_from_slice(b"                   0");
+        let mut current_cursor = collector.buffer.len() + 20 - 1;
+        while n != 0 {
+            collector.buffer[current_cursor] = b'0' + (n % 10) as u8;
+            n /= 10;
+            current_cursor -= 1;
+        }
         if collector.buffer.len() > BUFFER_SIZE {
             collector.to_file.borrow_mut().write_all(&collector.buffer).unwrap();
             collector.buffer.clear();

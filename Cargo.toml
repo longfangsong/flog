@@ -1,6 +1,6 @@
 [package]
 name = "flog"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["longfangsong <longfangsong@icloud.com>"]
 edition = "2018"
 description = "A fast logging library"
